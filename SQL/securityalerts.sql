@@ -1,0 +1,23 @@
+CREATE TABLE `securityalerts` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `UserId` int NOT NULL,
+  `AlertTypeId` int NOT NULL,
+  `Title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Description` text COLLATE utf8mb4_unicode_ci,
+  `ImageUrls` json DEFAULT NULL,
+  `Latitude` decimal(10,8) NOT NULL,
+  `Longitude` decimal(11,8) NOT NULL,
+  `Address` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `District` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Status` enum('Pending','Verified','Rejected','Resolved','Expired') COLLATE utf8mb4_unicode_ci DEFAULT 'Pending',
+  `ConfirmCount` int DEFAULT '0',
+  `DenyCount` int DEFAULT '0',
+  `ReportedAt` datetime DEFAULT CURRENT_TIMESTAMP,
+  `ExpiresAt` datetime DEFAULT NULL,
+  `UpdatedAt` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`Id`),
+  KEY `fk_alert_user` (`UserId`),
+  KEY `fk_alert_type` (`AlertTypeId`),
+  CONSTRAINT `fk_alert_type` FOREIGN KEY (`AlertTypeId`) REFERENCES `alerttypes` (`Id`),
+  CONSTRAINT `fk_alert_user` FOREIGN KEY (`UserId`) REFERENCES `users` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

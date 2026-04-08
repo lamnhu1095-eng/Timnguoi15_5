@@ -1,0 +1,22 @@
+CREATE TABLE `users` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `FullName` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `DateOfBirth` date DEFAULT NULL,
+  `Gender` enum('Nam','Nữ','Khác') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `Avatar` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `PasswordHash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'NULL nếu đăng nhập bằng Google',
+  `GoogleId` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `AuthProvider` enum('Local','Google') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Local',
+  `Role` enum('Admin','User') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'User',
+  `IsActive` tinyint(1) NOT NULL DEFAULT '1',
+  `CreatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `LastLoginAt` datetime DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `Email` (`Email`),
+  UNIQUE KEY `GoogleId` (`GoogleId`),
+  KEY `idx_users_email` (`Email`),
+  KEY `idx_users_googleid` (`GoogleId`),
+  KEY `idx_users_role` (`Role`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

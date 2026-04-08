@@ -1,0 +1,161 @@
+@model List<DaNangSafeMap.Models.Entities.MissingPerson>
+@{
+    ViewData["Title"] = "Tìm Người Mất Tích";
+    
+    string GetDesc(string? desc, string key) {
+        if (string.IsNullOrEmpty(desc)) return "";
+        var parts = desc.Split('|');
+        foreach (var p in parts) {
+            if (p.StartsWith(key + ":")) return p.Substring(key.Length + 1);
+        }
+        return "";
+    }
+    string TimeAgo(DateTime dt) {
+        var diff = DateTime.Now - dt;
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} phút trước";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} giờ trước";
+        return $"{(int)diff.TotalDays} ngày trước";
+    }
+}
+
+<link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+
+<div class="mp-page">
+    <!-- Header -->
+    <div class="mp-header">
+        <div class="mp-header__inner">
+            <div class="mp-header__text">
+                <h1>🔍 Tìm Người Mất Tích</h1>
+                <p>Cộng đồng cùng chung tay tìm kiếm người thân. Mỗi thông tin đều có thể tạo nên sự khác biệt.</p>
+            </div>
+            <a href="/MissingPerson/Create" class="mp-btn-post" id="btnCreatePost">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Đăng tin tìm người
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="mp-stats">
+        <div class="mp-stat">
+            <span class="mp-stat__num">@Model.Count</span>
+            <span class="mp-stat__label">Bài đăng</span>
+        </div>
+        <div class="mp-stat">
+            <span class="mp-stat__num">@Model.Count(m => m.Status == 1)</span>
+            <span class="mp-stat__label">Đang tìm kiếm</span>
+        </div>
+        <div class="mp-stat">
+            <span class="mp-stat__num">@Model.Count(m => m.Status == 2)</span>
+            <span class="mp-stat__label">Đã tìm thấy</span>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="mp-alert mp-alert--success">✅ @TempData["Success"]</div>
+    }
+
+    <!-- Filter bar -->
+    <div class="mp-filter">
+        <button class="mp-filter__btn active" data-filter="all">Tất cả</button>
+        <button class="mp-filter__btn" data-filter="1">🔴 Đang tìm</button>
+        <button class="mp-filter__btn" data-filter="2">🟢 Đã tìm thấy</button>
+    </div>
+
+    <!-- Grid -->
+    @if (!Model.Any())
+    {
+        <div class="mp-empty">
+            <div class="mp-empty__icon">🔍</div>
+            <h3>Chưa có bài đăng nào</h3>
+            <p>Hãy là người đầu tiên đăng tin tìm người</p>
+            <a href="/MissingPerson/Create" class="mp-btn-post">Đăng bài ngay</a>
+        </div>
+    }
+    else
+    {
+        <div class="mp-grid" id="mpGrid">
+            @foreach (var p in Model)
+            {
+                var age = GetDesc(p.Description, "TUOI");
+                var gender = GetDesc(p.Description, "GIOITINH");
+                var contact = GetDesc(p.Description, "LIENHE");
+                var statusClass = p.Status == 2 ? "found" : "searching";
+                var statusText = p.Status == 2 ? "🟢 Đã tìm thấy" : "🔴 Đang tìm kiếm";
+
+                <div class="mp-card" data-status="@p.Status">
+                    <!-- Ảnh -->
+                    <div class="mp-card__photo">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl))
+                        {
+                            <img src="@p.ImageUrl" alt="@p.FullName" loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="mp-card__no-photo">?</div>
+                        }
+                        <span class="mp-card__status @statusClass">@statusText</span>
+                    </div>
+
+                    <!-- Thông tin -->
+                    <div class="mp-card__body">
+                        <h3 class="mp-card__name">@p.FullName</h3>
+                        <div class="mp-card__meta">
+                            @if (!string.IsNullOrEmpty(age)) { <span>@age tuổi</span> }
+                            @if (!string.IsNullOrEmpty(gender)) { <span>@gender</span> }
+                        </div>
+                        <div class="mp-card__location">
+                            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            @p.LastSeenLocation
+                        </div>
+                        <div class="mp-card__time">⏰ @TimeAgo(p.CreatedAt)</div>
+                        @if (!string.IsNullOrEmpty(contact))
+                        {
+                            <div class="mp-card__contact">📞 @contact</div>
+                        }
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mp-card__actions">
+                        <a href="/MissingPerson/Details/@p.Id" class="mp-card__btn mp-card__btn--detail">Xem chi tiết</a>
+                        @if (p.Status == 1)
+                        {
+                            <a href="/MissingPerson/Details/@p.Id#clue" class="mp-card__btn mp-card__btn--clue">Gửi manh mối</a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+// Filter tabs
+document.querySelectorAll('.mp-filter__btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.mp-filter__btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const filter = this.dataset.filter;
+        document.querySelectorAll('.mp-card').forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Kiểm tra đăng nhập khi bấm "Đăng tin"
+document.getElementById('btnCreatePost')?.addEventListener('click', function(e) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        e.preventDefault();
+        alert('Bạn cần đăng nhập để đăng bài tìm người!');
+        window.location.href = '/Auth/Login';
+    }
+});
+</script>
+}

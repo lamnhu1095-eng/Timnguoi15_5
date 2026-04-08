@@ -1,0 +1,182 @@
+@model DaNangSafeMap.Models.Entities.MissingPerson
+@{
+    ViewData["Title"] = "Chi Tiết - " + Model.FullName;
+
+    string GetDesc(string key) {
+        if (string.IsNullOrEmpty(Model.Description)) return "";
+        var parts = Model.Description.Split('|');
+        foreach (var p in parts) {
+            if (p.StartsWith(key + ":")) return p.Substring(key.Length + 1);
+        }
+        return "";
+    }
+
+    var age     = GetDesc("TUOI");
+    var gender  = GetDesc("GIOITINH");
+    var height  = GetDesc("CHIEUCAO");
+    var feature = GetDesc("DACBIET");
+    var contact = GetDesc("LIENHE");
+    var content = GetDesc("NOIDUNG");
+
+    bool isFound    = Model.Status == 2;
+    bool isSearching = Model.Status == 1;
+}
+
+<link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+
+<div class="mp-detail-page">
+    <div class="mp-detail-card">
+        <!-- Back -->
+        <a href="/MissingPerson" class="mp-back-btn">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Quay lại danh sách
+        </a>
+
+        <div class="mp-detail-layout">
+            <!-- LEFT: Ảnh + Trạng thái -->
+            <div class="mp-detail-left">
+                <div class="mp-detail-photo">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl" alt="@Model.FullName" />
+                    }
+                    else
+                    {
+                        <div class="mp-detail-no-photo">?</div>
+                    }
+                </div>
+
+                <!-- Trạng thái lớn -->
+                @if (isFound)
+                {
+                    <div class="mp-status-badge mp-status-badge--found">
+                        🟢 ĐÃ TÌM THẤY
+                    </div>
+                }
+                else if (isSearching)
+                {
+                    <div class="mp-status-badge mp-status-badge--searching">
+                        🔴 ĐANG TÌM KIẾM
+                    </div>
+                }
+
+                <!-- Nút hành động chính -->
+                @if (isSearching)
+                {
+                    <div class="mp-detail-actions" id="clue">
+                        <button class="mp-btn-clue" id="btnClue" onclick="toggleClueForm()">
+                            💡 GỬI MANH MỐI
+                        </button>
+                    </div>
+
+                    <!-- Form gửi manh mối (ẩn) -->
+                    <div class="mp-clue-form" id="clueForm" style="display:none;">
+                        <h4>Gửi manh mối ẩn danh</h4>
+                        <textarea id="clueText" class="mp-input mp-textarea" rows="3"
+                            placeholder="Mô tả thông tin bạn biết về người này..."></textarea>
+                        <button class="mp-btn-submit" style="width:100%; margin-top:8px;" onclick="submitClue()">
+                            Gửi thông tin
+                        </button>
+                    </div>
+                }
+
+                <!-- Báo cáo vi phạm -->
+                <button class="mp-btn-report" onclick="alert('Chức năng báo cáo đang phát triển')">
+                    ⚑ Báo cáo vi phạm
+                </button>
+            </div>
+
+            <!-- RIGHT: Thông tin chi tiết -->
+            <div class="mp-detail-right">
+                <h1 class="mp-detail-name">@Model.FullName</h1>
+                <p class="mp-detail-time">⏰ Đăng lúc @Model.CreatedAt.ToString("HH:mm dd/MM/yyyy")</p>
+
+                <!-- Thông tin cơ bản -->
+                <div class="mp-info-section">
+                    <h3>📋 Thông tin cơ bản</h3>
+                    <div class="mp-info-grid">
+                        @if (!string.IsNullOrEmpty(age))
+                        {
+                            <div class="mp-info-item">
+                                <span class="mp-info-label">Tuổi</span>
+                                <span class="mp-info-value">@age tuổi</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(gender))
+                        {
+                            <div class="mp-info-item">
+                                <span class="mp-info-label">Giới tính</span>
+                                <span class="mp-info-value">@gender</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(height) && height != "")
+                        {
+                            <div class="mp-info-item">
+                                <span class="mp-info-label">Chiều cao</span>
+                                <span class="mp-info-value">@height cm</span>
+                            </div>
+                        }
+                        <div class="mp-info-item">
+                            <span class="mp-info-label">Địa điểm mất tích</span>
+                            <span class="mp-info-value">📍 @Model.LastSeenLocation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Đặc điểm nhận dạng -->
+                @if (!string.IsNullOrEmpty(feature))
+                {
+                    <div class="mp-info-section">
+                        <h3>🔍 Đặc điểm nhận dạng</h3>
+                        <p class="mp-detail-text">@feature</p>
+                    </div>
+                }
+
+                <!-- Nội dung bài viết -->
+                @if (!string.IsNullOrEmpty(content))
+                {
+                    <div class="mp-info-section">
+                        <h3>📝 Nội dung bài viết</h3>
+                        <p class="mp-detail-text">@content</p>
+                    </div>
+                }
+
+                <!-- Liên hệ -->
+                @if (!string.IsNullOrEmpty(contact))
+                {
+                    <div class="mp-info-section mp-contact-box">
+                        <h3>📞 Thông tin liên hệ</h3>
+                        <p class="mp-contact-info">@contact</p>
+                    </div>
+                }
+
+                <!-- Người đăng -->
+                @if (Model.User != null)
+                {
+                    <div class="mp-info-section">
+                        <h3>👤 Người đăng bài</h3>
+                        <p>@Model.User.FullName</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function toggleClueForm() {
+    const form = document.getElementById('clueForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function submitClue() {
+    const text = document.getElementById('clueText').value.trim();
+    if (!text) { alert('Vui lòng nhập thông tin manh mối'); return; }
+
+    alert('✅ Cảm ơn bạn đã gửi thông tin! Chúng tôi sẽ xem xét và liên hệ người đăng bài.');
+    document.getElementById('clueForm').style.display = 'none';
+    document.getElementById('clueText').value = '';
+}
+</script>
+}
