@@ -66,5 +66,16 @@ namespace DaNangSafeMap.Services.Implementations
             await _db.SaveChangesAsync();
             return true;
         }
+
+        // Đánh dấu đã tìm thấy — chỉ owner mới làm được
+        public async Task<bool> MarkResolvedAsync(int id, int userId)
+        {
+            var person = await _db.MissingPersons.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId);
+            if (person == null) return false;
+
+            person.Status = 2; // Resolved
+            await _db.SaveChangesAsync();
+            return true;
+        }
     }
 }

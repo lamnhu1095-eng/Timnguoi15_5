@@ -12,6 +12,10 @@ namespace DaNangSafeMap.Data
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<MissingPerson> MissingPersons { get; set; } = null!;
+        public DbSet<Clue> Clues { get; set; } = null!;                 // bảng clues
+        public DbSet<ChatRoom> ChatRooms { get; set; } = null!;         // bảng chatrooms
+        public DbSet<ChatMessage> ChatMessages { get; set; } = null!;   // bảng chatmessages
+        public DbSet<Report> Reports { get; set; } = null!;             // bảng reports
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

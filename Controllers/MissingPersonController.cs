@@ -93,5 +93,24 @@ namespace DaNangSafeMap.Controllers
             TempData["Success"] = "Đã xóa bài đăng";
             return RedirectToAction(nameof(Index));
         }
+
+        // POST /MissingPerson/MarkResolved/5 — Chức năng 5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkResolved(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
+
+            int userId = int.Parse(userIdClaim);
+            var ok = await _service.MarkResolvedAsync(id, userId);
+
+            TempData[ok ? "Success" : "Error"] = ok
+                ? "🟢 Đã cập nhật trạng thái: Đã tìm thấy!"
+                : "Bạn không có quyền thực hiện thao tác này.";
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 }

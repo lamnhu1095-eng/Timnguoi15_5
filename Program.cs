@@ -57,6 +57,9 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMissingPersonService, MissingPersonService>();
+builder.Services.AddScoped<ClueService>();      // Chức năng 3: Manh mối
+builder.Services.AddScoped<MpChatService>();    // Chức năng 4: Chatbox
+builder.Services.AddScoped<DaNangSafeMap.Services.Interfaces.IReportService, DaNangSafeMap.Services.Implementations.ReportService>(); // Chức năng 6: Báo cáo
 
 // ─── 4. MVC + API ─────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
