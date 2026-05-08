@@ -91,8 +91,31 @@ namespace DaNangSafeMap.Controllers.Api
         [HttpGet("rooms/{missingPersonId}")]
         public async Task<IActionResult> GetRooms(int missingPersonId)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int? currentUserId = string.IsNullOrEmpty(userIdClaim) ? null : int.Parse(userIdClaim);
+
             var rooms = await _chat.GetRoomsByMissingPersonAsync(missingPersonId);
-            return Ok(rooms.Select(r => new { r.Id, r.Name, r.CreatedAt }));
+            var result = new List<object>();
+            foreach (var r in rooms)
+            {
+                int unread = currentUserId.HasValue
+                    ? await _chat.CountUnreadInRoomAsync(r.Id, currentUserId.Value)
+                    : 0;
+                result.Add(new { r.Id, r.Name, r.CreatedAt, UnreadCount = unread });
+            }
+            return Ok(result);
+        }
+
+        // GET /api/chat/unread-me/{roomId}
+        // Guest kiểm tra tin chưa đọc trong phòng của mình (khi owner reply)
+        [HttpGet("unread-me/{roomId}")]
+        public async Task<IActionResult> UnreadMe(int roomId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Ok(new { count = 0 });
+            int userId = int.Parse(userIdClaim);
+            int count = await _chat.CountUnreadInRoomAsync(roomId, userId);
+            return Ok(new { count });
         }
     }
 

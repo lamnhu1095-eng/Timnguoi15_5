@@ -16,6 +16,7 @@ namespace DaNangSafeMap.Data
         public DbSet<ChatRoom> ChatRooms { get; set; } = null!;         // bảng chatrooms
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;   // bảng chatmessages
         public DbSet<Report> Reports { get; set; } = null!;             // bảng reports
+        public DbSet<Notification> Notifications { get; set; } = null!; // bảng notifications
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

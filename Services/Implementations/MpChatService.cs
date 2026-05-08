@@ -7,7 +7,13 @@ namespace DaNangSafeMap.Services.Implementations
     public class MpChatService
     {
         private readonly ApplicationDbContext _db;
-        public MpChatService(ApplicationDbContext db) => _db = db;
+        private readonly NotificationService _notif;
+
+        public MpChatService(ApplicationDbContext db, NotificationService notif)
+        {
+            _db = db;
+            _notif = notif;
+        }
 
         // Tìm hoặc tạo phòng chat giữa người cung cấp và bài đăng
         public async Task<ChatRoom> GetOrCreateRoomAsync(int missingPersonId, int senderUserId)
@@ -46,6 +52,51 @@ namespace DaNangSafeMap.Services.Implementations
             };
             _db.ChatMessages.Add(msg);
             await _db.SaveChangesAsync();
+
+            // Gửi thông báo liên quan đến chat
+            var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+            if (room?.Name != null && room.Name.StartsWith("MP_"))
+            {
+                // Tên phòng: MP_{mpId}_U_{senderUserId}
+                var parts = room.Name.Split('_');
+                if (parts.Length >= 4
+                    && int.TryParse(parts[1], out int mpId)
+                    && int.TryParse(parts[3], out int chatUserId))
+                {
+                    var post = await _db.MissingPersons.FirstOrDefaultAsync(m => m.Id == mpId);
+                    if (post != null)
+                    {
+                        if (post.UserId != senderId)
+                        {
+                            // Người dùng nhắn → notify chủ bài
+                            bool isAnon = text.StartsWith("[ANON]");
+                            string senderLabel = isAnon
+                                ? "Người ẩn danh"
+                                : (await _db.Users.FindAsync(senderId))?.FullName ?? "Ai đó";
+                            await _notif.CreateAsync(
+                                userId: post.UserId,
+                                type: "chat",
+                                title: "Tin nhắn mới",
+                                message: $"{senderLabel} vừa nhắn tin về bài đăng \u201c{post.FullName}\u201d",
+                                link: $"/MissingPerson/Details/{mpId}#chat"
+                            );
+                        }
+                        else if (senderId == post.UserId && chatUserId != senderId)
+                        {
+                            // Chủ bài reply → notify người đã nhắn tin
+                            var ownerName = (await _db.Users.FindAsync(senderId))?.FullName ?? "Chủ bài đăng";
+                            await _notif.CreateAsync(
+                                userId: chatUserId,
+                                type: "chat",
+                                title: "Tin nhắn mới",
+                                message: $"{ownerName} vừa phản hồi về bài đăng \u201c{post.FullName}\u201d",
+                                link: $"/MissingPerson/Details/{mpId}#chat"
+                            );
+                        }
+                    }
+                }
+            }
+
             return msg;
         }
 
@@ -93,6 +144,15 @@ namespace DaNangSafeMap.Services.Implementations
             return await _db.ChatRooms
                 .Where(r => r.Name != null && r.Name.StartsWith(prefix))
                 .ToListAsync();
+        }
+
+        // Đếm tin chưa đọc trong 1 phòng cụ thể cho 1 user
+        public async Task<int> CountUnreadInRoomAsync(int roomId, int userId)
+        {
+            return await _db.ChatMessages
+                .CountAsync(m => m.RoomId == roomId
+                              && m.SenderId != userId
+                              && !m.IsRead);
         }
 
         // Lấy phòng cụ thể theo tên

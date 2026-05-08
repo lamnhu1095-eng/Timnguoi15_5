@@ -43,14 +43,24 @@
 }
 .mp-header__text h1 {
   font-size: 2rem;
-  font-weight: 800;
-  margin: 0 0 8px;
+  font-weight: 900;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
 }
 .mp-header__text p {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.88;
+  margin: 0 0 6px;
   max-width: 520px;
+  line-height: 1.6;
+}
+.mp-header__trust {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* Stats row */
@@ -63,13 +73,13 @@
 .mp-stat {
   background: white;
   border: 1px solid var(--mp-border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 120px;
-  box-shadow: var(--mp-shadow);
+  box-shadow: none;
 }
 .mp-stat__num {
   font-size: 1.8rem;
@@ -135,15 +145,20 @@
 /* Card */
 .mp-card {
   background: white;
-  border-radius: var(--mp-radius);
-  box-shadow: var(--mp-shadow);
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.25s, box-shadow 0.25s;
-  border: 1px solid var(--mp-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  text-decoration: none !important;
+  color: inherit !important;
 }
 .mp-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  transform: translateY(-5px);
+  border-color: var(--mp-teal);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
 }
 
 .mp-card__photo {
@@ -164,20 +179,63 @@
 }
 .mp-card__status {
   position: absolute;
-  top: 10px; left: 10px;
-  padding: 4px 12px;
-  border-radius: 50px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  backdrop-filter: blur(8px);
+  top: 12px; right: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: none;
 }
+
 .mp-card__status.searching {
-  background: rgba(239,68,68,0.9);
-  color: white;
+  color: #ef4444;
 }
+.mp-card__status.searching::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  animation: pulse-red-status 1.5s infinite;
+}
+
+@keyframes pulse-red-status {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 .mp-card__status.found {
-  background: rgba(34,197,94,0.9);
+  color: #10b981;
+}
+.mp-card__status.found::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+}
+
+.mp-card__badge-72h {
+  position: absolute;
+  top: 12px; left: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: white;
+  background: #ef4444;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.3);
 }
 
 .mp-card__body {
@@ -204,37 +262,27 @@
 }
 .mp-card__location svg { width: 14px; height: 14px; stroke: var(--mp-teal); fill: none; stroke-width: 2; }
 
-.mp-card__actions {
-  padding: 10px 18px 16px;
+.mp-card__cta {
   display: flex;
-  gap: 10px;
-}
-.mp-card__btn {
-  flex: 1;
-  padding: 9px 0;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px;
+  background: var(--mp-teal);
+  color: white;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.2s;
+  transition: background 0.2s, transform 0.2s;
 }
-.mp-card__btn--detail {
-  border: 2px solid var(--mp-teal);
-  color: var(--mp-teal);
-  background: white;
+.mp-card:hover .mp-card__cta {
+  background: #0f766e;
 }
-.mp-card__btn--detail:hover {
-  background: var(--mp-teal);
-  color: white;
+.mp-card__cta svg {
+  transition: transform 0.2s;
 }
-.mp-card__btn--clue {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: white;
-  border: none;
-}
-.mp-card__btn--clue:hover {
-  filter: brightness(1.1);
+.mp-card:hover .mp-card__cta svg {
+  transform: translateX(3px);
 }
 
 /* Empty state */
@@ -253,14 +301,14 @@
   gap: 8px;
   background: white;
   color: var(--mp-teal);
-  padding: 12px 24px;
-  border-radius: 50px;
+  padding: 12px 22px;
+  border-radius: 10px;
   font-weight: 700;
   font-size: 0.95rem;
   text-decoration: none;
   white-space: nowrap;
   transition: all 0.2s;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 .mp-btn-post svg {
   width: 18px; height: 18px;
@@ -269,8 +317,8 @@
   stroke-width: 2.5;
 }
 .mp-btn-post:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  background: #f0fdfa;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* ══════════════════════════════════════
@@ -668,11 +716,12 @@
 .mp-modal {
   background: white;
   border-radius: 20px;
-  width: 90%; max-width: 520px;
+  width: 90%; max-width: 700px;
   max-height: 85vh;
   display: flex; flex-direction: column;
   box-shadow: 0 24px 80px rgba(0,0,0,0.25);
   animation: modalIn 0.25s ease;
+  overflow: hidden;
 }
 .mp-modal--sm { max-width: 400px; }
 @keyframes modalIn {
@@ -763,26 +812,70 @@
 }
 
 /* ── Clue list ── */
-.mp-clue-list { display: flex; flex-direction: column; gap: 16px; }
+.mp-clue-list { display: flex; flex-direction: column; gap: 20px; }
 .mp-clue-item {
-  background: #f8fafc;
-  border: 1px solid var(--mp-border);
+  background: white;
+  border: 1px solid #eef2f6;
   border-radius: 12px;
-  padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 6px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   font-size: 0.9rem;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  margin-bottom: 4px;
+}
+.mp-clue-item:hover {
+  border-color: var(--mp-teal);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
 }
 .mp-clue-meta {
-  display: flex; justify-content: space-between;
-  font-size: 0.8rem; color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.mp-clue-sender { font-weight: 600; }
+.mp-clue-sender {
+  font-weight: 700;
+  color: var(--mp-dark);
+  font-size: 0.88rem;
+}
+.mp-clue-time {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+.mp-clue-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: #64748b;
+  padding: 8px 0;
+  border-top: 1px solid #f8fafc;
+}
+.mp-clue-info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mp-clue-info-item strong {
+  color: #1e293b;
+}
 .mp-clue-content {
-  background: white;
-  border-left: 3px solid var(--mp-teal);
-  padding: 8px 12px;
-  border-radius: 0 8px 8px 0;
-  color: #374151;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #334155;
+  line-height: 1.6;
+  border-left: 3px solid #cbd5e1;
+}
+.mp-clue-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 .mp-loading { color: #94a3b8; font-size: 0.85rem; }
 

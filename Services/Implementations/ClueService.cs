@@ -7,7 +7,13 @@ namespace DaNangSafeMap.Services.Implementations
     public class ClueService
     {
         private readonly ApplicationDbContext _db;
-        public ClueService(ApplicationDbContext db) => _db = db;
+        private readonly NotificationService _notif;
+
+        public ClueService(ApplicationDbContext db, NotificationService notif)
+        {
+            _db = db;
+            _notif = notif;
+        }
 
         // Lấy tất cả manh mối của 1 bài đăng (mới nhất trước)
         public async Task<List<Clue>> GetByMissingPersonAsync(int missingPersonId)
@@ -45,6 +51,25 @@ namespace DaNangSafeMap.Services.Implementations
             };
             _db.Clues.Add(clue);
             await _db.SaveChangesAsync();
+
+            // Gửi thông báo cho chủ bài đăng
+            var post = await _db.MissingPersons
+                .Include(m => m.User)
+                .FirstOrDefaultAsync(m => m.Id == missingPersonId);
+            if (post != null)
+            {
+                string senderLabel = userId.HasValue
+                    ? (await _db.Users.FindAsync(userId.Value))?.FullName ?? "Ai đó"
+                    : "Người ẩn danh";
+                await _notif.CreateAsync(
+                    userId: post.UserId,
+                    type: "clue",
+                    title: "Manh mối mới",
+                    message: $"{senderLabel} vừa gửi manh mối cho bài đăng \u201c{post.FullName}\u201d",
+                    link: $"/MissingPerson/Details/{missingPersonId}#clues"
+                );
+            }
+
             return clue;
         }
 

@@ -17,10 +17,21 @@ namespace DaNangSafeMap.Controllers
         }
 
         // GET /MissingPerson
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+            string? keyword,
+            string? ageGroup,
+            string? gender,
+            int? daysAgo,
+            string sortBy = "newest")
         {
-            var list = await _service.GetAllActiveAsync();
-            return View(list);
+            // Lấy userId nếu đã đăng nhập
+            int? currentUserId = null;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var uid))
+                currentUserId = uid;
+
+            var vm = await _service.SearchAsync(keyword, ageGroup, gender, daysAgo, sortBy, currentUserId);
+            return View(vm);
         }
 
         // GET /MissingPerson/Details/5

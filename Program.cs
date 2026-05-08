@@ -57,6 +57,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMissingPersonService, MissingPersonService>();
+builder.Services.AddScoped<NotificationService>();              // Hệ thống thông báo
 builder.Services.AddScoped<ClueService>();      // Chức năng 3: Manh mối
 builder.Services.AddScoped<MpChatService>();    // Chức năng 4: Chatbox
 builder.Services.AddScoped<DaNangSafeMap.Services.Interfaces.IReportService, DaNangSafeMap.Services.Implementations.ReportService>(); // Chức năng 6: Báo cáo
@@ -80,6 +81,55 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ─── TỰ TẠO / CẬP NHẬT BẢNG NOTIFICATIONS ───────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DaNangSafeMap.Data.ApplicationDbContext>();
+
+    // Tạo bảng nếu chưa có
+    db.Database.ExecuteSqlRaw(@"
+        CREATE TABLE IF NOT EXISTS `notifications` (
+            `Id`        int          NOT NULL AUTO_INCREMENT,
+            `UserId`    int          NOT NULL,
+            `Type`      varchar(20)  NOT NULL DEFAULT '',
+            `Title`     varchar(200) NOT NULL DEFAULT '',
+            `Message`   varchar(500) NOT NULL DEFAULT '',
+            `Link`      varchar(500) NULL,
+            `IsRead`    tinyint(1)   NOT NULL DEFAULT 0,
+            `CreatedAt` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`Id`),
+            KEY `IX_notifications_UserId` (`UserId`),
+            CONSTRAINT `FK_notifications_Users`
+                FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // Thêm cột Link nếu bảng cũ chưa có (tránh lỗi 'Unknown column')
+    try {
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE `notifications`
+            ADD COLUMN `Link` varchar(500) NULL;
+        ");
+    } catch { /* Cột đã tồn tại → bỏ qua */ }
+
+    // Đồng bộ tên cột: bảng cũ có 'Content' nhưng Entity model dùng 'Message'
+    try {
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE `notifications`
+            CHANGE COLUMN `Content` `Message` varchar(500) NOT NULL DEFAULT '';
+        ");
+    } catch { /* Cột đã đúng tên → bỏ qua */ }
+
+    // Thêm cột Type nếu chưa có
+    try {
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE `notifications`
+            ADD COLUMN `Type` varchar(20) NOT NULL DEFAULT '' AFTER `UserId`;
+        ");
+    } catch { /* Cột đã tồn tại → bỏ qua */ }
+
+}
+
 // ─── MIDDLEWARE PIPELINE ──────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
 {
@@ -96,9 +146,39 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Route cho API controllers
+// Middleware: Chặn Admin không được truy cập trang của người dùng
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    
+    if (context.User.Identity != null && context.User.Identity.IsAuthenticated && context.User.IsInRole("Admin"))
+    {
+        // Cho phép truy cập Area Admin, API, đăng xuất, và xem chi tiết bài đăng (để review báo cáo)
+        if (!path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/Auth", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/Account/Logout", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/MissingPerson/Details", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Redirect("/Admin/Dashboard");
+            return;
+        }
+    }
+    await next();
+});
+
+// Route cho Area (Admin)
+app.MapControllerRoute(
+    name: "AdminArea",
+    pattern: "Admin/{action=Dashboard}/{id?}",
+    defaults: new { area = "Admin", controller = "Admin" });
+
+// Route cho MVC controllers
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Route cho API controllers (ApiController attribute)
+app.MapControllers();
 
 app.Run();

@@ -66,8 +66,10 @@ namespace DaNangSafeMap.Controllers.Api
                 imageUrl = $"/images/clues/{fname}";
             }
 
+            int? finalUserId = req.IsAnonymous ? null : userId;
+
             var clue = await _clueService.CreateAsync(
-                req.MissingPersonId, userId,
+                req.MissingPersonId, finalUserId,
                 req.SeenLocation, req.SeenAt, req.Content,
                 req.Phone, imageUrl);
 
@@ -92,5 +94,6 @@ namespace DaNangSafeMap.Controllers.Api
         public string? Phone { get; set; }
 
         public IFormFile? Photo { get; set; }
+        public bool IsAnonymous { get; set; } = false;
     }
 }

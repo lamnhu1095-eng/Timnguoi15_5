@@ -4,6 +4,7 @@
 }
 
 <link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <div class="mp-create-page">
     <div class="mp-create-card">
@@ -12,13 +13,13 @@
                 <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
                 Quay lại
             </a>
-            <h1>📋 Đăng Tin Tìm Người</h1>
+            <h1>Đăng Tin Tìm Người</h1>
             <p>Vui lòng điền đầy đủ thông tin để cộng đồng có thể hỗ trợ tìm kiếm</p>
         </div>
 
         @if (TempData["Error"] != null)
         {
-            <div class="mp-alert mp-alert--error">⚠️ @TempData["Error"]</div>
+            <div class="mp-alert mp-alert--error">@TempData["Error"]</div>
         }
 
         <form asp-action="Create" method="post" enctype="multipart/form-data" class="mp-form">
@@ -26,7 +27,7 @@
 
             <!-- Thông tin người mất tích -->
             <div class="mp-form-section">
-                <h2 class="mp-form-section__title">👤 Thông tin người mất tích</h2>
+                <h2 class="mp-form-section__title">Thông tin người mất tích</h2>
 
                 <div class="mp-form-row">
                     <div class="mp-form-group">
@@ -69,14 +70,31 @@
                 <div class="mp-form-group">
                     <label asp-for="LastSeenLocation">Địa điểm mất tích <span class="required">*</span></label>
                     <input asp-for="LastSeenLocation" class="mp-input"
-                        placeholder="VD: Chợ Hàn, Đà Nẵng" />
+                        placeholder="VD: Chợ Hàn, Đà Nẵng" id="locationInput" />
                     <span asp-validation-for="LastSeenLocation" class="mp-error"></span>
+                </div>
+
+                <!-- MAP PICKER -->
+                <div class="mp-form-group">
+                    <label>Chọn vị trí trên bản đồ <span style="color:#9ca3af;font-weight:400;font-size:13px;">(tuỳ chọn – giúp tính năng "Gần vị trí tôi" hoạt động)</span></label>
+                    <div style="position:relative;">
+                        <div id="locationMap" style="height:280px;border-radius:12px;border:1.5px solid #e5e7eb;overflow:hidden;z-index:1;"></div>
+                        <button type="button" id="btnMyLocation"
+                            style="position:absolute;top:10px;right:10px;z-index:999;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12);display:flex;align-items:center;gap:5px;">
+                            Vị trí của tôi
+                        </button>
+                    </div>
+                    <p style="font-size:12px;color:#9ca3af;margin-top:6px;">Click lên bản đồ để đặt pin vị trí mất tích. Mặc định căn giữa Đà Nẵng.</p>
+                    <!-- Hidden fields lưu tọa độ -->
+                    <input type="hidden" asp-for="Latitude"  id="hiddenLat" />
+                    <input type="hidden" asp-for="Longitude" id="hiddenLng" />
+                    <div id="coordDisplay" style="font-size:12px;color:#6b7280;margin-top:4px;"></div>
                 </div>
             </div>
 
             <!-- Upload ảnh -->
             <div class="mp-form-section">
-                <h2 class="mp-form-section__title">📷 Ảnh nhận dạng <span class="required">*</span></h2>
+                <h2 class="mp-form-section__title">Ảnh nhận dạng <span class="required">*</span></h2>
                 <div class="mp-upload-zone" id="uploadZone">
                     <input asp-for="Photo" type="file" class="mp-file-input" id="photoInput"
                            accept="image/*" />
@@ -92,7 +110,7 @@
 
             <!-- Liên hệ & Nội dung -->
             <div class="mp-form-section">
-                <h2 class="mp-form-section__title">📞 Thông tin liên hệ & Bài viết</h2>
+                <h2 class="mp-form-section__title">Thông tin liên hệ & Bài viết</h2>
 
                 <div class="mp-form-group">
                     <label asp-for="ContactInfo">Thông tin liên hệ <span class="required">*</span></label>
@@ -110,7 +128,7 @@
             </div>
 
             <div class="mp-form-footer">
-                <p class="mp-notice">⚠️ Bài đăng sẽ được admin duyệt trước khi hiển thị công khai</p>
+                <p class="mp-notice">Bài đăng sẽ hiển thị công khai ngay sau khi đăng</p>
                 <div class="mp-form-actions">
                     <a href="/MissingPerson" class="mp-btn-cancel">Hủy</a>
                     <button type="submit" class="mp-btn-submit">
@@ -124,10 +142,11 @@
 </div>
 
 @section Scripts {
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// Preview ảnh khi chọn
-const photoInput = document.getElementById('photoInput');
-const previewImg = document.getElementById('previewImg');
+// ===== Preview ảnh khi chọn =====
+const photoInput   = document.getElementById('photoInput');
+const previewImg   = document.getElementById('previewImg');
 const uploadPreview = document.getElementById('uploadPreview');
 
 photoInput.addEventListener('change', function() {
@@ -141,10 +160,104 @@ photoInput.addEventListener('change', function() {
         reader.readAsDataURL(this.files[0]);
     }
 });
-
-// Click zone để mở file picker
 document.getElementById('uploadZone').addEventListener('click', function(e) {
     if (e.target !== photoInput) photoInput.click();
+});
+
+// ===== LEAFLET MAP PICKER =====
+const DA_NANG = [16.0544, 108.2022];
+const map = L.map('locationMap', { zoomControl: true }).setView(DA_NANG, 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let marker = null;
+const locationInput = document.getElementById('locationInput');
+const hiddenLat     = document.getElementById('hiddenLat');
+const hiddenLng     = document.getElementById('hiddenLng');
+const coordDisplay  = document.getElementById('coordDisplay');
+
+// --- Đặt pin và lưu tọa độ ---
+function setMarker(lat, lng, skipReverseGeocode = false) {
+    if (marker) marker.setLatLng([lat, lng]);
+    else {
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', e => {
+            const p = e.target.getLatLng();
+            setMarker(p.lat, p.lng); // kéo pin → reverse geocode
+        });
+    }
+    hiddenLat.value = lat.toFixed(6);
+    hiddenLng.value = lng.toFixed(6);
+    coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    if (!skipReverseGeocode) reverseGeocode(lat, lng);
+}
+
+// --- Click bản đồ → đặt pin + điền địa chỉ vào ô text ---
+map.on('click', e => {
+    map.setView(e.latlng, map.getZoom());
+    setMarker(e.latlng.lat, e.latlng.lng);
+});
+
+// --- Reverse geocode: tọa độ → địa chỉ ---
+function reverseGeocode(lat, lng) {
+    coordDisplay.textContent = 'Đang tìm địa chỉ...';
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`)
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.display_name) {
+                locationInput.value = data.display_name;
+                coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+        })
+        .catch(() => {
+            coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        });
+}
+
+// --- Geocode: ô text → tọa độ, di chuyển bản đồ ---
+let geocodeTimer = null;
+locationInput.addEventListener('input', function() {
+    clearTimeout(geocodeTimer);
+    const q = this.value.trim();
+    if (q.length < 4) return;
+
+    geocodeTimer = setTimeout(() => {
+        coordDisplay.textContent = 'Đang tìm vị trí...';
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Đà Nẵng, Việt Nam')}&format=json&limit=1&accept-language=vi`)
+            .then(r => r.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    const { lat, lon } = results[0];
+                    const latF = parseFloat(lat), lngF = parseFloat(lon);
+                    map.setView([latF, lngF], 15);
+                    setMarker(latF, lngF, true); // skip reverse geocode để không ghi đè text
+                    coordDisplay.textContent = `${latF.toFixed(5)}, ${lngF.toFixed(5)}`;
+                } else {
+                    coordDisplay.textContent = 'Không tìm thấy địa điểm, hãy click trực tiếp lên bản đồ';
+                }
+            })
+            .catch(() => coordDisplay.textContent = '');
+    }, 700); // debounce 700ms
+});
+
+// --- Nút "Vị trí của tôi" ---
+document.getElementById('btnMyLocation').addEventListener('click', function() {
+    const btn = this;
+    btn.textContent = 'Đang lấy vị trí...';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            map.setView([lat, lng], 15);
+            setMarker(lat, lng); // sẽ reverse geocode để điền ô text
+            btn.textContent = 'Đã lấy vị trí';
+        },
+        () => {
+            alert('Không thể lấy vị trí. Hãy cho phép trình duyệt truy cập GPS.');
+            btn.textContent = 'Vị trí của tôi';
+        }
+    );
 });
 </script>
 }

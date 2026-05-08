@@ -30,6 +30,10 @@ namespace DaNangSafeMap.Models.ViewModels.MissingPerson
         [Display(Name = "Địa điểm mất tích")]
         public string LastSeenLocation { get; set; } = string.Empty;
 
+        // Tọa độ bản đồ (tự điền qua map picker)
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+
         [Required(ErrorMessage = "Vui lòng upload ảnh người mất tích")]
         [Display(Name = "Ảnh người mất tích")]
         public IFormFile? Photo { get; set; }

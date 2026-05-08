@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -64,6 +64,24 @@
                     Đăng Nhập
                 </a>
 
+                <!-- NOTIFICATION BELL — chỉ hiện khi đã đăng nhập -->
+                <div class="notif-wrap" id="notifWrap" style="display:none;position:relative;">
+                    <button id="notifBell" type="button" style="background:none;border:none;cursor:pointer;position:relative;padding:6px;">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span id="notifBadge" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:17px;height:17px;font-size:10px;font-weight:700;line-height:17px;text-align:center;"></span>
+                    </button>
+                    <div id="notifDropdown" style="display:none;position:absolute;right:0;top:calc(100%+8px);width:340px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:9999;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid #f3f4f6;">
+                            <strong style="font-size:15px;">Thông báo</strong>
+                            <button id="notifReadAll" style="font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;">Đánh dấu tất cả đã đọc</button>
+                        </div>
+                        <div id="notifList" style="max-height:360px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+
                 <!-- User menu — hiện khi đã đăng nhập -->
                 <div class="user-menu" id="userMenu" style="display:none;">
                     <button class="user-trigger" id="userTrigger" type="button" aria-label="Menu người dùng">
@@ -120,10 +138,12 @@
 
                 document.getElementById('navLoginBtn').style.display = 'none';
                 document.getElementById('userMenu').style.display    = 'flex';
+                document.getElementById('notifWrap').style.display   = 'block';
             } else {
                 // Chưa đăng nhập
                 document.getElementById('navLoginBtn').style.display = 'flex';
                 document.getElementById('userMenu').style.display    = 'none';
+                document.getElementById('notifWrap').style.display   = 'none';
             }
         } catch (e) {
             document.getElementById('navLoginBtn').style.display = 'flex';
@@ -152,6 +172,151 @@
             window.location.href = '/Auth/Login';
         });
     }
+
+    // ── NOTIFICATION BELL ─────────────────────────────────────────────
+    var notifBell     = document.getElementById('notifBell');
+    var notifDropdown = document.getElementById('notifDropdown');
+    var notifBadge    = document.getElementById('notifBadge');
+    var notifList     = document.getElementById('notifList');
+    var notifReadAll  = document.getElementById('notifReadAll');
+    var lastNotifCount = 0; // theo dõi số thông báo cũ để phát hiện mới
+
+    // CSS cho toast và animation chuông
+    (function() {
+        var style = document.createElement('style');
+        style.textContent = `
+            .notif-toast {
+                position: fixed; top: 20px; right: 20px; z-index: 99999;
+                background: linear-gradient(135deg, #1e293b, #334155);
+                color: #fff; padding: 16px 20px; border-radius: 14px;
+                box-shadow: 0 8px 32px rgba(0,0,0,.25);
+                max-width: 360px; font-size: 14px;
+                animation: notifSlideIn 0.4s ease-out;
+                cursor: pointer; border-left: 4px solid #ef4444;
+            }
+            .notif-toast:hover { opacity: 0.9; }
+            .notif-toast-title { font-weight: 700; margin-bottom: 4px; }
+            .notif-toast-msg { color: #cbd5e1; font-size: 13px; }
+            @@keyframes notifSlideIn { from { transform: translateX(120%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+            @@keyframes notifSlideOut { from { transform: translateX(0); opacity:1; } to { transform: translateX(120%); opacity:0; } }
+            @@keyframes bellShake {
+                0%,100% { transform: rotate(0); }
+                15% { transform: rotate(14deg); }
+                30% { transform: rotate(-14deg); }
+                45% { transform: rotate(10deg); }
+                60% { transform: rotate(-8deg); }
+                75% { transform: rotate(4deg); }
+            }
+            .bell-shake svg { animation: bellShake 0.8s ease-in-out; }
+        `;
+        document.head.appendChild(style);
+    })();
+
+    function showToast(title, message, link, id) {
+        var existing = document.querySelectorAll('.notif-toast');
+        existing.forEach(function(e) { e.remove(); });
+        var toast = document.createElement('div');
+        toast.className = 'notif-toast';
+        toast.innerHTML = '<div class="notif-toast-title">' + title + '</div>'
+                        + '<div class="notif-toast-msg">' + message + '</div>';
+        toast.onclick = function() {
+            toast.remove();
+            if (id && window.markNotifRead) {
+                window.markNotifRead(id, link);
+            } else if (link) {
+                window.location.href = link;
+            }
+        };
+        document.body.appendChild(toast);
+        setTimeout(function() {
+            if (toast.parentNode) {
+                toast.style.animation = 'notifSlideOut 0.4s ease-in forwards';
+                setTimeout(function() { toast.remove(); }, 400);
+            }
+        }, 8000);
+    }
+
+    function timeAgo(d) {
+        var diff = (Date.now() - new Date(d)) / 1000;
+        if (diff < 60)   return Math.floor(diff) + ' giây trước';
+        if (diff < 3600) return Math.floor(diff/60) + ' phút trước';
+        if (diff < 86400) return Math.floor(diff/3600) + ' giờ trước';
+        return Math.floor(diff/86400) + ' ngày trước';
+    }
+
+    function fetchNotif() {
+        var token = localStorage.getItem('token');
+        if (!token) return;
+        fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(r){ return r.ok ? r.json() : []; })
+            .then(function(list) {
+                var unread = list.filter(function(n){ return !n.isRead; }).length;
+                notifBadge.textContent = unread > 9 ? '9+' : unread;
+                notifBadge.style.display = unread > 0 ? 'block' : 'none';
+
+                // Phát hiện thông báo MỚI → hiện toast popup
+                var newest = list.find(function(n){ return !n.isRead; });
+                if (newest) {
+                    var lastNotifId = parseInt(localStorage.getItem('lastNotifId') || '0', 10);
+                    if (newest.id > lastNotifId) {
+                        showToast(newest.title, newest.message, newest.link, newest.id);
+                        // Rung chuông
+                        if (notifBell) {
+                            notifBell.classList.add('bell-shake');
+                            setTimeout(function(){ notifBell.classList.remove('bell-shake'); }, 1000);
+                        }
+                        localStorage.setItem('lastNotifId', newest.id);
+                    }
+                }
+
+                if (!list.length) {
+                    notifList.innerHTML = '<div style="padding:24px;text-align:center;color:#9ca3af;">Không có thông báo</div>';
+                    return;
+                }
+                notifList.innerHTML = list.map(function(n) {
+                    var bg   = n.isRead ? '#fff' : '#fef2f2';
+                    return '<a href="' + (n.link||'#') + '" onclick="markNotifRead(' + n.id + ', \'' + (n.link||'#') + '\', event)" '
+                        + 'style="display:block;padding:12px 16px;border-bottom:1px solid #f3f4f6;background:' + bg + ';text-decoration:none;color:inherit;">'
+                        + '<div style="flex:1;">'
+                        + '<div style="font-weight:' + (n.isRead?'400':'600') + ';font-size:14px;">' + n.title + '</div>'
+                        + '<div style="font-size:13px;color:#6b7280;margin-top:2px;">' + n.message + '</div>'
+                        + '<div style="font-size:11px;color:#9ca3af;margin-top:4px;">' + timeAgo(n.createdAt) + '</div>'
+                        + '</div></a>';
+                }).join('');
+            }).catch(function(e){ console.error('Notification fetch error:', e); });
+    }
+
+    window.markNotifRead = function(id, link, event) {
+        if (event) event.preventDefault();
+        var token = localStorage.getItem('token');
+        var p = Promise.resolve();
+        if (token) {
+            p = fetch('/api/notifications/read/'+id, { method:'POST', headers:{'Authorization':'Bearer '+token} }).catch(function(){});
+        }
+        p.finally(function() {
+            if (link && link !== '#') window.location.href = link;
+        });
+    };
+
+    if (notifBell) {
+        notifBell.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var open = notifDropdown.style.display !== 'none';
+            notifDropdown.style.display = open ? 'none' : 'block';
+            if (!open) fetchNotif();
+        });
+        document.addEventListener('click', function() { notifDropdown.style.display = 'none'; });
+        notifDropdown.addEventListener('click', function(e) { e.stopPropagation(); });
+    }
+    if (notifReadAll) {
+        notifReadAll.addEventListener('click', function() {
+            var token = localStorage.getItem('token');
+            if (token) fetch('/api/notifications/readall', { method:'POST', headers:{'Authorization':'Bearer '+token} })
+                .then(fetchNotif);
+        });
+    }
+    // Polling mỗi 10 giây (thay vì 30s) để nhận thông báo nhanh hơn
+    if (localStorage.getItem('token')) { fetchNotif(); setInterval(fetchNotif, 10000); }
     </script>
 </body>
 </html>
