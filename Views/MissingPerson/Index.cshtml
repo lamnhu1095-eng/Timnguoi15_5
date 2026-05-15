@@ -713,7 +713,7 @@ function applyClientFilters() {
                 let count = 0;
                 if (token) {
                     try {
-                        const res = await fetch('/api/missing-person/my-count', {
+                        const res = await fetch('/MissingPerson/MyCount', {
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
                         console.log('[MyPosts] API status:', res.status);

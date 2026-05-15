@@ -2,27 +2,24 @@ using Microsoft.AspNetCore.Mvc;
 using DaNangSafeMap.Models.DTOs;
 using DaNangSafeMap.Services.Interfaces;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
-namespace DaNangSafeMap.Controllers.Api
+namespace DaNangSafeMap.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ReportsController : ControllerBase
+    public class ReportController : Controller
     {
         private readonly IReportService _reportService;
 
-        public ReportsController(IReportService reportService)
+        public ReportController(IReportService reportService)
         {
             _reportService = reportService;
         }
 
-        [HttpPost]
+        [HttpPost("Report/CreateReport")]
         public async Task<IActionResult> CreateReport([FromBody] ReportDto dto)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.Reason))
             {
-                return BadRequest(new { error = "Dữ liệu không hợp lệ." });
+                return Json(new { error = "Dữ liệu không hợp lệ." });
             }
 
             int? reporterId = null;
@@ -33,8 +30,7 @@ namespace DaNangSafeMap.Controllers.Api
             }
 
             var report = await _reportService.CreateReportAsync(dto, reporterId);
-
-            return Ok(new { success = true, reportId = report.Id });
+            return Json(new { success = true, reportId = report.Id });
         }
     }
 }

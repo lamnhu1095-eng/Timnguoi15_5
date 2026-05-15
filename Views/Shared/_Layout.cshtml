@@ -247,7 +247,7 @@
     function fetchNotif() {
         var token = localStorage.getItem('token');
         if (!token) return;
-        fetch('/api/notifications', { headers: { 'Authorization': 'Bearer ' + token } })
+        fetch('/Notification/GetRecent', { headers: { 'Authorization': 'Bearer ' + token } })
             .then(function(r){ return r.ok ? r.json() : []; })
             .then(function(list) {
                 var unread = list.filter(function(n){ return !n.isRead; }).length;
@@ -291,7 +291,7 @@
         var token = localStorage.getItem('token');
         var p = Promise.resolve();
         if (token) {
-            p = fetch('/api/notifications/read/'+id, { method:'POST', headers:{'Authorization':'Bearer '+token} }).catch(function(){});
+            p = fetch('/Notification/MarkAsRead/'+id, { method:'POST', headers:{'Authorization':'Bearer '+token} }).catch(function(){});
         }
         p.finally(function() {
             if (link && link !== '#') window.location.href = link;
@@ -311,7 +311,7 @@
     if (notifReadAll) {
         notifReadAll.addEventListener('click', function() {
             var token = localStorage.getItem('token');
-            if (token) fetch('/api/notifications/readall', { method:'POST', headers:{'Authorization':'Bearer '+token} })
+            if (token) fetch('/Notification/MarkAllRead', { method:'POST', headers:{'Authorization':'Bearer '+token} })
                 .then(fetchNotif);
         });
     }

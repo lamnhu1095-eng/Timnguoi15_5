@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using DaNangSafeMap.Models.ViewModels.MissingPerson;
 using DaNangSafeMap.Services.Interfaces;
+using DaNangSafeMap.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace DaNangSafeMap.Controllers
 {
@@ -9,11 +11,13 @@ namespace DaNangSafeMap.Controllers
     {
         private readonly IMissingPersonService _service;
         private readonly IWebHostEnvironment _env;
+        private readonly ApplicationDbContext _db;
 
-        public MissingPersonController(IMissingPersonService service, IWebHostEnvironment env)
+        public MissingPersonController(IMissingPersonService service, IWebHostEnvironment env, ApplicationDbContext db)
         {
             _service = service;
             _env = env;
+            _db = db;
         }
 
         // GET /MissingPerson
@@ -122,6 +126,20 @@ namespace DaNangSafeMap.Controllers
                 : "Bạn không có quyền thực hiện thao tác này.";
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet("MissingPerson/MyCount")]
+        public async Task<IActionResult> MyCount()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Json(new { count = 0 });
+
+            int userId = int.Parse(userIdClaim);
+            int count = await _db.MissingPersons
+                .CountAsync(m => m.UserId == userId && m.Status != 4 && m.DeletedAt == null);
+
+            return Json(new { count });
         }
     }
 }

@@ -695,7 +695,7 @@ async function submitClueData(e) {
         const token = localStorage.getItem('token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
         
-        const res = await fetch('/api/clues', {
+        const res = await fetch('/Clue/Submit', {
             method: 'POST',
             headers: headers,
             body: formData
@@ -782,7 +782,7 @@ async function openChat(isAnon = false) {
     }
 
     // Tạo/mở phòng chat
-    const res = await fetch('/api/chat/open-room', {
+    const res = await fetch('/Chat/OpenRoom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ missingPersonId: PERSON_ID })
@@ -889,7 +889,7 @@ async function sendMessage() {
 
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/chat/send', {
+        const res = await fetch('/Chat/Send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({ roomId: currentRoomId, message: finalPayload })
@@ -932,7 +932,7 @@ async function markRead() {
 // ─── CHỨC NĂNG 3: Load manh mối (chỉ owner) ─────────────────────────
 async function loadClues() {
     const token = localStorage.getItem('token');
-    const res = await fetch(`/api/clues/${PERSON_ID}`, {
+    const res = await fetch(`/Clue/GetClues/${PERSON_ID}`, {
         headers: { 'Authorization': 'Bearer ' + token }
     });
     if (!res.ok) return;
@@ -1173,7 +1173,7 @@ async function submitReport() {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
 
-        const res = await fetch('/api/reports', {
+        const res = await fetch('/Report/CreateReport', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
