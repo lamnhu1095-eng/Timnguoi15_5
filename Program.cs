@@ -153,7 +153,7 @@ app.Use(async (context, next) =>
     
     if (context.User.Identity != null && context.User.Identity.IsAuthenticated && context.User.IsInRole("Admin"))
     {
-        // Cho phép truy cập Area Admin, API, đăng xuất, và xem chi tiết bài đăng (để review báo cáo)
+        // Cho phép truy cập Admin, API, đăng xuất, và xem chi tiết bài đăng (để review báo cáo)
         if (!path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) &&
             !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) &&
             !path.StartsWith("/Auth", StringComparison.OrdinalIgnoreCase) &&
@@ -167,11 +167,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// Route cho Area (Admin)
-app.MapControllerRoute(
-    name: "AdminArea",
-    pattern: "Admin/{action=Dashboard}/{id?}",
-    defaults: new { area = "Admin", controller = "Admin" });
 
 // Route cho MVC controllers
 app.MapControllerRoute(

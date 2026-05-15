@@ -2,7 +2,7 @@
 @model IEnumerable<MissingPerson>
 @{
     ViewData["Title"] = "Quản lý người lạc";
-    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     int page       = ViewBag.Page;
     int totalPages = ViewBag.TotalPages;
     string search  = ViewBag.Search;
@@ -248,12 +248,17 @@
 
     /* Clue items */
     .pv-clue-item {
-        background: #f8f9fc; border-radius: 10px;
-        padding: 12px 14px; margin-bottom: 8px; font-size: .82rem;
+        background: #f8f9fa; border: 1px solid #eef2f6; border-radius: 12px;
+        padding: 16px; margin-bottom: 12px; font-size: .85rem;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .pv-clue-reporter { font-weight: 600; color: #374151; }
-    .pv-clue-content  { color: #4b5563; margin-top: 4px; }
-    .pv-clue-meta     { color: #9ca3af; font-size: .75rem; margin-top: 6px; }
+    .pv-clue-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .pv-clue-reporter { font-weight: 700; color: #1e293b; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+    .pv-clue-reporter::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+    .pv-clue-content { color: #475569; margin: 10px 0; line-height: 1.5; }
+    .pv-clue-detail { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .pv-clue-detail-item { background: #fff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; color: #64748b; font-weight: 500; }
+    .pv-clue-meta { color: #94a3b8; font-size: .75rem; margin-top: 12px; border-top: 1px solid #f1f5f9; padding-top: 8px; display: flex; justify-content: space-between; }
 
     @@media (max-width: 560px) {
         .pv-layout { flex-direction: column; }
@@ -350,16 +355,39 @@
         /* Manh mối */
         let cluesHtml = '';
         if (d.clues && d.clues.length > 0) {
-            cluesHtml = `<div class="pv-section-title" style="margin-top:4px;">Manh mối gần nhất (${d.clueCount} tổng cộng)</div>`;
+            cluesHtml = `<div class="pv-section-title" style="margin-top:12px; margin-bottom: 16px; color: #059669;">Manh mối gần nhất (${d.clueCount} tổng cộng)</div>`;
             d.clues.forEach(c => {
-                const loc  = c.location ? `<span>${c.location}</span> · ` : '';
-                const cImg = c.imageUrl  ? `<img src="${c.imageUrl}" style="width:100%;border-radius:8px;margin-top:8px;max-height:140px;object-fit:cover;">` : '';
+                // Parse packed content: SEEN_AT:|PHONE:|CONTENT:
+                const parseClue = (key) => {
+                    if (!c.content) return "";
+                    const parts = c.content.split('|');
+                    for (let p of parts) {
+                        if (p.startsWith(key + ":")) return p.substring(key.length + 1);
+                    }
+                    return "";
+                };
+
+                const seenAt = parseClue("SEEN_AT");
+                const phone = parseClue("PHONE");
+                const content = parseClue("CONTENT") || c.content; // fallback if not packed
+                const loc = c.location || "Không rõ vị trí";
+                
+                const cImg = c.imageUrl ? `<img src="${c.imageUrl}" style="width:100%;border-radius:10px;margin-top:12px;max-height:200px;object-fit:cover;border: 1px solid #f1f5f9;">` : '';
+                
+                let detailsHtml = '';
+                if (seenAt) detailsHtml += `<div class="pv-clue-detail-item">🕒 Thấy lúc: ${seenAt}</div>`;
+                if (phone) detailsHtml += `<div class="pv-clue-detail-item">📞 SĐT: ${phone}</div>`;
+                if (loc) detailsHtml += `<div class="pv-clue-detail-item">📍 ${loc}</div>`;
+
                 cluesHtml += `
                     <div class="pv-clue-item">
                         <div class="pv-clue-reporter">${c.reporter}</div>
-                        <div class="pv-clue-content">${c.content || ''}</div>
+                        <div class="pv-clue-content">${content}</div>
+                        <div class="pv-clue-detail">${detailsHtml}</div>
                         ${cImg}
-                        <div class="pv-clue-meta">${loc}<span>${c.createdAt}</span></div>
+                        <div class="pv-clue-meta">
+                            <span>Gửi lúc: ${c.createdAt}</span>
+                        </div>
                     </div>`;
             });
         }
