@@ -1,5 +1,16 @@
 SET FOREIGN_KEY_CHECKS = 0;
 USE DaNangSafeMap;
+DELETE FROM `chatmessages`;
+DELETE FROM `chatrooms`;
+DELETE FROM `clues`;
+DELETE FROM `locations`;
+DELETE FROM `missingperson_tags`;
+DELETE FROM `missingpersons`;
+DELETE FROM `moderation_logs`;
+DELETE FROM `notifications`;
+DELETE FROM `reports`;
+DELETE FROM `tags`;
+DELETE FROM `users`;
 INSERT INTO `chatrooms` VALUES (1,'MP_25_U_21',0,'2026-04-28 20:29:03');
 INSERT INTO `chatrooms` VALUES (2,'MP_26_U_21',0,'2026-04-28 20:55:18');
 INSERT INTO `chatrooms` VALUES (3,'MP_25_U_22',0,'2026-05-03 00:44:49');
